@@ -188,30 +188,33 @@ a{color:var(--accent)}
 .round-hd h3{font-family:'Archivo';font-size:14px;font-weight:800;letter-spacing:.03em;color:var(--muted);text-transform:uppercase}
 .round-hd .rule{flex:1;height:1px;background:var(--line)}
 .match{
-  display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+  display:flex;flex-direction:column;gap:12px;
   background:var(--surface2);border:1px solid var(--line);border-radius:var(--r);
-  padding:12px 14px;margin-bottom:10px;
+  padding:14px 16px;margin-bottom:10px;
 }
 .match.done{border-color:var(--line2);background:linear-gradient(180deg,var(--surface2),rgba(51,214,166,.04))}
-.m-teams{display:flex;flex-direction:column;gap:8px;min-width:0}
-.m-side{display:flex;align-items:center;gap:10px}
+.m-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .m-num{font-family:'JetBrains Mono';font-weight:700;font-size:11px;color:var(--faint);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:2px 7px;flex:none}
-.m-name{font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.m-side.win .m-name{color:var(--win)}
-.m-side.win .m-name::after{content:" ✓";color:var(--win);font-weight:800}
-.m-side.grp-lbl .m-name{color:var(--muted);font-style:italic;font-weight:500}
-.m-scores{display:flex;gap:14px;align-items:center}
-.set-col{display:flex;flex-direction:column;align-items:center;gap:6px}
-.set-col .setlbl{font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--faint);text-transform:uppercase}
-.set-inputs{display:flex;flex-direction:column;gap:6px}
+.m-versus{display:flex;align-items:center;justify-content:center;gap:12px;padding:2px 0 4px}
+.m-name{font-family:'Archivo';font-weight:800;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:42%}
+.m-name.win{color:var(--win)}
+.m-name.win::after{content:" ✓";color:var(--win);font-weight:800}
+.m-name.grp-lbl{color:var(--muted);font-style:italic;font-weight:500}
+.m-colon{color:var(--faint);font-weight:900;font-size:15px;flex:none}
+.m-sets{display:flex;flex-direction:column;gap:8px}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:7px 12px;transition:opacity .15s}
+.set-row.locked{opacity:.4}
+.set-row .setlbl{font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+.set-inputs{display:flex;align-items:center;gap:8px}
+.set-inputs .set-colon{color:var(--faint);font-weight:800;font-size:15px}
 .set-inputs input{
-  width:46px;height:34px;text-align:center;font-family:'JetBrains Mono';font-weight:700;font-size:16px;
-  background:var(--surface);border:1px solid var(--line);border-radius:8px;color:var(--text);
+  width:56px;height:40px;text-align:center;font-family:'JetBrains Mono';font-weight:700;font-size:18px;
+  background:var(--surface2);border:1px solid var(--line);border-radius:8px;color:var(--text);
   font-variant-numeric:tabular-nums;
 }
 .set-inputs input:focus{outline:none;border-color:var(--accent);background:var(--surface3)}
 .set-inputs input.win{color:var(--win);border-color:rgba(51,214,166,.4)}
-.set-col.s3.locked{opacity:.35}
+.set-inputs input:disabled{opacity:.4}
 .m-pts{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:34px}
 .m-pts .plabel{font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--faint);text-transform:uppercase}
 .m-pts .pv{font-family:'JetBrains Mono';font-weight:700;font-size:16px}
@@ -271,9 +274,8 @@ a{color:var(--accent)}
 @media (max-width:640px){
   .wrap{padding:18px 12px 90px}
   .card{padding:15px}
-  .match{grid-template-columns:1fr}
-  .m-scores{justify-content:space-between}
-  .set-inputs input{width:42px}
+  .m-name{font-size:15px;max-width:38%}
+  .set-inputs input{width:48px;height:38px;font-size:16px}
   .topbar-right .savepill{display:none}
 }
 </style>
@@ -287,21 +289,19 @@ a{color:var(--accent)}
 .livepill.off{color:var(--loss);border-color:rgba(240,89,106,.35)}
 .livepill.off .livedot{background:var(--loss)}
 @keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(51,214,166,.55)}70%{box-shadow:0 0 0 7px rgba(51,214,166,0)}100%{box-shadow:0 0 0 0 rgba(51,214,166,0)}}
-.m-scores-ro{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.set-ro{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:50px}
-.set-ro .setlbl{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700}
-.set-ro .vals{display:flex;gap:8px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
-.set-ro .vals span{color:var(--muted);min-width:16px;text-align:center}
-.set-ro .vals span.w{color:var(--text)}
-.set-ro.empty .vals span{color:var(--faint)}
+.set-row-ro{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:7px 12px}
+.set-row-ro.empty{opacity:.5}
+.set-row-ro .setlbl{font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--faint)}
+.set-row-ro .vals{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:17px;font-variant-numeric:tabular-nums}
+.set-row-ro .vals span{min-width:26px;text-align:center;color:var(--muted)}
+.set-row-ro .vals span.w{color:var(--win)}
+.set-row-ro .vals .colon{color:var(--faint);font-weight:800;min-width:auto}
 .ko-sets-ro{display:inline-flex;gap:7px;margin-left:auto;font-family:'JetBrains Mono',monospace;font-weight:700;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);letter-spacing:.02em}
 .ko-sets-ro b{color:var(--text);font-weight:800}
 .ko-sets-ro span,.ko-sets-ro b{min-width:14px;text-align:center;display:inline-block}
 .updbar{max-width:var(--maxw,1180px);margin:0 auto;padding:2px 20px 0;color:var(--faint);font-size:12px}
 @media(max-width:640px){
   .ro-title{font-size:17px}
-  .m-scores-ro{gap:10px}
-  .set-ro{min-width:44px}
 }
 </style>
 </head>
@@ -522,20 +522,24 @@ function matchRowRO(m){
   const res=getResult(m.id); const ev=evalMatch(res.s);
   const nameA=teamName(sa), nameB=teamName(sb);
   const showSets=[0,1]; if(res.s[2][0]!==null||res.s[2][1]!==null) showSets.push(2);
-  const setCell=(k)=>{ const a=res.s[k][0], b=res.s[k][1], w=setWinner(a,b); const has=(a!==null||b!==null);
-    return `<div class="set-ro ${has?'':'empty'}"><span class="setlbl">Satz ${k+1}</span>
-      <div class="vals"><span class="${w===1?'w':''}">${a===null?'–':a}</span><span class="${w===2?'w':''}">${b===null?'–':b}</span></div></div>`; };
+  const setRow=(k)=>{ const a=res.s[k][0], b=res.s[k][1], w=setWinner(a,b); const has=(a!==null||b!==null);
+    return `<div class="set-row-ro ${has?'':'empty'}">
+      <span class="setlbl">Satz ${k+1}</span>
+      <div class="vals"><span class="${w===1?'w':''}">${a===null?'–':a}</span><span class="colon">:</span><span class="${w===2?'w':''}">${b===null?'–':b}</span></div>
+    </div>`; };
   return `<div class="match ${ev.complete?'done':''}">
-    <div class="m-teams">
-      <div class="m-side ${ev.winner===1?'win':''} ${sa.teamIdx==null?'grp-lbl':''}"><span class="m-num">#${m.no} · ${m.gid}</span><span class="m-name">${escapeHtml(nameA)}</span></div>
-      <div class="m-side ${ev.winner===2?'win':''} ${sb.teamIdx==null?'grp-lbl':''}"><span class="m-num" style="visibility:hidden">#</span><span class="m-name">${escapeHtml(nameB)}</span></div>
-    </div>
-    <div class="m-scores-ro">
-      ${showSets.map(setCell).join("")}
+    <div class="m-top">
+      <span class="m-num">#${m.no} · ${m.gid}</span>
       <div class="m-pts"><span class="plabel">Pkt</span>
         <span class="pv ${ev.ptsA>ev.ptsB?'hi':''}">${ev.complete?ev.ptsA:'–'}</span>
         <span class="pv ${ev.ptsB>ev.ptsA?'hi':''}">${ev.complete?ev.ptsB:'–'}</span></div>
     </div>
+    <div class="m-versus">
+      <span class="m-name ${ev.winner===1?'win':''} ${sa.teamIdx==null?'grp-lbl':''}">${escapeHtml(nameA)}</span>
+      <span class="m-colon">:</span>
+      <span class="m-name ${ev.winner===2?'win':''} ${sb.teamIdx==null?'grp-lbl':''}">${escapeHtml(nameB)}</span>
+    </div>
+    <div class="m-sets">${showSets.map(setRow).join("")}</div>
   </div>`;
 }
 
