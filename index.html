@@ -299,6 +299,11 @@ a{color:var(--accent)}
 .ko-sets-ro{display:inline-flex;gap:7px;margin-left:auto;font-family:'JetBrains Mono',monospace;font-weight:700;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);letter-spacing:.02em}
 .ko-sets-ro b{color:var(--text);font-weight:800}
 .ko-sets-ro span,.ko-sets-ro b{min-width:14px;text-align:center;display:inline-block}
+.sched-ko{margin-bottom:10px}
+.sched-ko.done{border-color:var(--line2);background:linear-gradient(180deg,var(--surface2),rgba(51,214,166,.04))}
+.sched-ko .m-top{padding:7px 11px;border-bottom:1px solid var(--line)}
+.sched-ko .m-pts{flex-direction:row;gap:8px;margin-left:auto}
+.sched-ko .ko-seed{width:30px}
 .updbar{max-width:var(--maxw,1180px);margin:0 auto;padding:2px 20px 0;color:var(--faint);font-size:12px}
 @media(max-width:640px){
   .ro-title{font-size:17px}
@@ -521,32 +526,34 @@ function matchRowRO(m){
   const sa=groupSlots(m.gid).find(s=>s.idx===m.i), sb=groupSlots(m.gid).find(s=>s.idx===m.j);
   const res=getResult(m.id); const ev=evalMatch(res.s);
   const nameA=teamName(sa), nameB=teamName(sb);
-  const showSets=[0,1]; if(res.s[2][0]!==null||res.s[2][1]!==null) showSets.push(2);
-  const setRow=(k)=>{ const a=res.s[k][0], b=res.s[k][1], w=setWinner(a,b); const has=(a!==null||b!==null);
-    return `<div class="set-row-ro ${has?'':'empty'}">
-      <span class="setlbl">Satz ${k+1}</span>
-      <div class="vals"><span class="${w===1?'w':''}">${a===null?'–':a}</span><span class="colon">:</span><span class="${w===2?'w':''}">${b===null?'–':b}</span></div>
-    </div>`; };
-  return `<div class="match ${ev.complete?'done':''}">
+  const setsHtml=(side)=>res.s.map(s=>{
+    if(s[0]===null&&s[1]===null) return "";
+    const v=s[side], w=setWinner(s[0],s[1]);
+    const val=(v===null?'–':v);
+    return (w===side+1)?`<b>${val}</b>`:`<span>${val}</span>`;
+  }).join("");
+  const sideHtml=(slot,name,side,winFlag)=>`
+    <div class="ko-side ${winFlag?'win':''}">
+      <span class="ko-seed">${slot.tag}</span>
+      <span class="ko-name ${slot.teamIdx==null?'tbd':''}">${escapeHtml(name)}</span>
+      <span class="ko-sets-ro">${setsHtml(side)}</span>
+    </div>`;
+  return `<div class="ko-match sched-ko ${ev.complete?'done':''}">
     <div class="m-top">
       <span class="m-num">#${m.no} · ${m.gid}</span>
       <div class="m-pts"><span class="plabel">Pkt</span>
         <span class="pv ${ev.ptsA>ev.ptsB?'hi':''}">${ev.complete?ev.ptsA:'–'}</span>
         <span class="pv ${ev.ptsB>ev.ptsA?'hi':''}">${ev.complete?ev.ptsB:'–'}</span></div>
     </div>
-    <div class="m-versus">
-      <span class="m-name ${ev.winner===1?'win':''} ${sa.teamIdx==null?'grp-lbl':''}">${escapeHtml(nameA)}</span>
-      <span class="m-colon">:</span>
-      <span class="m-name ${ev.winner===2?'win':''} ${sb.teamIdx==null?'grp-lbl':''}">${escapeHtml(nameB)}</span>
-    </div>
-    <div class="m-sets">${showSets.map(setRow).join("")}</div>
+    ${sideHtml(sa,nameA,0, ev.winner===1)}
+    ${sideHtml(sb,nameB,1, ev.winner===2)}
   </div>`;
 }
 
 /* ---- KO ---- */
 function koBracketDef(size){
   if(size===8) return {rounds:[
-    {key:"VF", title:"Viertelfinale", pairs:[[0,6],[1,7],[2,4],[3,5]]},
+    {key:"VF", title:"Viertelfinale", pairs:[[0,6],[2,7],[1,4],[3,5]]},
     {key:"HF", title:"Halbfinale", from:[[0,1],[2,3]]},
     {key:"FIN", title:"Finale", from:[[0,1]]},
   ]};
@@ -720,7 +727,7 @@ function koMatchHtmlRO(mm,isFinal){
 /* ============================================================
    LIVE-DATEN
    ============================================================ */
-let lastOk=0, RAW_BASE=null;
+let lastOk=0, RAW_BASE=null, LAST_STATE_TEXT="";
 function ctx(){
   const host=location.hostname;
   const owner=host.split(".")[0];
@@ -728,7 +735,27 @@ function ctx(){
   const repo = seg.length ? seg[0] : (owner+".github.io");
   return {owner,repo};
 }
+function b64ToUtf8(b64){
+  const bin=atob((b64||"").replace(/\s/g,""));
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  return new TextDecoder("utf-8").decode(bytes);
+}
+async function fetchStateViaApi(){
+  const {owner,repo}=ctx();
+  for(const br of ["main","master","gh-pages"]){
+    const url=`https://api.github.com/repos/${owner}/${repo}/contents/state.json?ref=${encodeURIComponent(br)}&t=${Date.now()}`;
+    try{
+      const r=await fetch(url,{cache:"no-store",headers:{Accept:"application/vnd.github+json"}});
+      if(r.ok){ const j=await r.json(); if(j&&j.content) return JSON.parse(b64ToUtf8(j.content)); }
+    }catch(e){}
+  }
+  throw new Error("api no state");
+}
 async function fetchState(){
+  // Direkt aus GitHub lesen: deutlich schneller als GitHub-Pages-Cache am Handy.
+  try{ return await fetchStateViaApi(); }catch(e){}
+
   const {owner,repo}=ctx(); const bust="?t="+Date.now();
   const cands=[];
   if(RAW_BASE) cands.push(RAW_BASE+bust);
@@ -739,8 +766,7 @@ async function fetchState(){
       if(url.indexOf("raw.githubusercontent")>-1) RAW_BASE=url.split("?")[0]; return d; } }catch(e){}
   }
   throw new Error("no state");
-}
-function setLive(ok){ const p=$("#livePill"); p.className="livepill "+(ok?"on":"off"); }
+}function setLive(ok){ const p=$("#livePill"); p.className="livepill "+(ok?"on":"off"); }
 function updateAgo(){
   const t=$("#liveTxt"), bar=$("#updBar");
   if(!lastOk){ t.textContent="keine Verbindung"; bar.textContent=""; return; }
@@ -749,11 +775,15 @@ function updateAgo(){
   bar.textContent = "Zuletzt aktualisiert: " + (s<8 ? "gerade eben" : (s<60? `vor ${s}\u00A0s` : `vor ${Math.round(s/60)}\u00A0min`));
 }
 async function tick(){
-  try{ const d=await fetchState(); S=d; lastOk=Date.now(); setLive(true); renderAll(); }
+  try{
+    const d=await fetchState();
+    const raw=JSON.stringify(d);
+    lastOk=Date.now(); setLive(true);
+    if(raw!==LAST_STATE_TEXT){ LAST_STATE_TEXT=raw; S=d; renderAll(); }
+  }
   catch(e){ setLive(false); if(!lastOk) renderAll(); }
   updateAgo();
 }
-
 /* ---- Tabs ---- */
 $("#tabs").addEventListener("click",e=>{ const b=e.target.closest(".tab"); if(!b) return;
   $$(".tab").forEach(t=>t.classList.remove("active")); b.classList.add("active");
@@ -781,7 +811,7 @@ initTheme();
 
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden) tick(); });
 setInterval(updateAgo,1000);
-setInterval(tick,12000);
+setInterval(tick,2500);
 renderAll();
 tick();
 </script>
