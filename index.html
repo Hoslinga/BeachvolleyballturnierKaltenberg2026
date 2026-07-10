@@ -616,6 +616,8 @@ function renderKORO(){
 /* ---- Platzierungsspiele (5.–8. Platz aus dem KO-Baum) ---- */
 function renderKoPlacementRO(vfLosers){
   if(!vfLosers || vfLosers.length!==4) return "";
+  // Die zwei besser gesetzten Viertelfinal-Verlierer spielen um Platz 5/6,
+  // die zwei schlechter gesetzten Viertelfinal-Verlierer spielen um Platz 7/8.
   const sorted = vfLosers.slice().sort((a,b)=>{
     const ra=a?a.overall:Infinity, rb=b?b.overall:Infinity;
     return ra-rb;
@@ -628,9 +630,7 @@ function renderKoPlacementRO(vfLosers){
     <div class="card-head"><div><div class="eyebrow">Platzierungsspiele</div><h2>Plätze 5–8</h2></div></div>
     <div class="bracket">${cols}</div>
   </div>`;
-}
-
-/* ---- Platzierungsrunde für alle Teams außerhalb der KO-Phase (bzw. das ganze Feld ohne KO) ---- */
+}/* ---- Platzierungsrunde für alle Teams außerhalb der KO-Phase (bzw. das ganze Feld ohne KO) ---- */
 function restTeams(){ if(!S.drawn) return []; return computeOverall().slice(S.koSize||0); }
 function poolMatchId(letter,i,j){ const a=Math.min(i,j), b=Math.max(i,j); return `PG${letter}#${a}#${b}`; }
 function computePoolTable(letter, pool){
