@@ -604,7 +604,7 @@ function renderKORO(){
       ${third?`<tr><td class="rk"><span class="medal">🥉</span></td><td class="l tm">${escapeHtml(third.name)}</td></tr>`:''}
       </tbody></table></div>`;
   }
-  const koPlacement = S.koSize===8 ? renderKoPlacementRO(losers["VF"]) : "";
+  const koPlacement = S.koSize===8 ? renderKoPlacementRO(results["VF"]) : "";
   const restPlacement = renderRestPlacementRO();
   body.innerHTML=`<div class="card">
     <div class="card-head"><div><div class="eyebrow">Endrunde</div><h2>KO-Baum · Top ${S.koSize}</h2></div>
@@ -614,23 +614,26 @@ function renderKORO(){
 }
 
 /* ---- Platzierungsspiele (5.–8. Platz aus dem KO-Baum) ---- */
-function renderKoPlacementRO(vfLosers){
-  if(!vfLosers || vfLosers.length!==4) return "";
-  // Die zwei besser gesetzten Viertelfinal-Verlierer spielen um Platz 5/6,
-  // die zwei schlechter gesetzten Viertelfinal-Verlierer spielen um Platz 7/8.
-  const sorted = vfLosers.slice().sort((a,b)=>{
-    const ra=a?a.overall:Infinity, rb=b?b.overall:Infinity;
-    return ra-rb;
-  });
-  const p5=resolveKoMatch("KOP5",0,sorted[0]||null,sorted[1]||null,null,null);
-  const p7=resolveKoMatch("KOP7",0,sorted[2]||null,sorted[3]||null,null,null);
+function renderKoPlacementRO(vfMatches){
+  if(!vfMatches || vfMatches.length!==4) return "";
+  // Viertelfinal-Verlierer nach im verlorenen Viertelfinale erzielten Ballpunkten reihen.
+  const items = vfMatches.map(mm=>{
+    if(!mm || !mm.lose) return {team:null, pts:-Infinity, overall:Infinity};
+    const side = (mm.lose===mm.a) ? 0 : 1;
+    const pts = side===0 ? mm.ev.ballA : mm.ev.ballB;
+    return {team:mm.lose, pts, overall:mm.lose.overall==null?Infinity:mm.lose.overall};
+  }).sort((a,b)=> b.pts-a.pts || a.overall-b.overall);
+  const p5=resolvePlaceMatch("KOP5#0",items[0]?.team||null,items[1]?.team||null,null,null);
+  const p7=resolvePlaceMatch("KOP7#0",items[2]?.team||null,items[3]?.team||null,null,null);
   const cols=`<div class="br-col"><div class="br-col-title">Platz 5 / 6</div>${koMatchHtmlRO(p5,false)}</div>
     <div class="br-col"><div class="br-col-title">Platz 7 / 8</div>${koMatchHtmlRO(p7,false)}</div>`;
   return `<div class="card">
     <div class="card-head"><div><div class="eyebrow">Platzierungsspiele</div><h2>Plätze 5–8</h2></div></div>
     <div class="bracket">${cols}</div>
   </div>`;
-}/* ---- Platzierungsrunde für alle Teams außerhalb der KO-Phase (bzw. das ganze Feld ohne KO) ---- */
+}
+
+/* ---- Platzierungsrunde für alle Teams außerhalb der KO-Phase (bzw. das ganze Feld ohne KO) ---- */
 function restTeams(){ if(!S.drawn) return []; return computeOverall().slice(S.koSize||0); }
 function poolMatchId(letter,i,j){ const a=Math.min(i,j), b=Math.max(i,j); return `PG${letter}#${a}#${b}`; }
 function computePoolTable(letter, pool){
@@ -753,7 +756,7 @@ async function fetchStateViaApi(){
   throw new Error("api no state");
 }
 async function fetchState(){
-  // Direkt aus GitHub lesen: deutlich schneller als GitHub-Pages-Cache am Handy.
+  // Direkt aus GitHub lesen: schneller als GitHub-Pages-/Raw-Cache am Handy.
   try{ return await fetchStateViaApi(); }catch(e){}
 
   const {owner,repo}=ctx(); const bust="?t="+Date.now();
@@ -776,8 +779,7 @@ function updateAgo(){
 }
 async function tick(){
   try{
-    const d=await fetchState();
-    const raw=JSON.stringify(d);
+    const d=await fetchState(); const raw=JSON.stringify(d);
     lastOk=Date.now(); setLive(true);
     if(raw!==LAST_STATE_TEXT){ LAST_STATE_TEXT=raw; S=d; renderAll(); }
   }
